@@ -74,8 +74,3 @@ class Scryer:
                 except AttributeError:
                     continue
         return block
-
-#    def packager(self, block): #depreciated
-#        df = pd.DataFrame(block)
-#        csv_data = df.to_csv(header=False, index=False)
-#        return csv_data
