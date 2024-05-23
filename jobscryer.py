@@ -9,11 +9,12 @@ import time
 from tqdm import tqdm
 
 # Scrapes just one site for now.
-url = 'https://ai-jobs.net'
 
 
 class Scryer:
-    def clicker(self):
+    # ai-jobs.net added a paywall to the "load more jobs" button, so this is
+    # deprecated for now.
+    def clicker(self, url):
         driver = webdriver.Chrome()
         driver.get(url)
         while True:
@@ -39,7 +40,17 @@ class Scryer:
                     job_links.append(link['href'])
                 return job_links
 
-    def extracter(self, path_list):
+    def scrape(self, url):
+        r = requests.get(url)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        jobs = soup.find_all('a', href=re.compile(r'/job/\d+'))
+        job_links = []
+        for link in jobs:
+            job_links.append(link['href'])
+        return job_links
+
+    def extracter(self, url, path_list):
+        url = 'https://ai-jobs.net'
         itr = len(path_list)
         with tqdm(total=itr, desc='Processing', unit='iterations') as pbar:
             block = []
@@ -62,13 +73,29 @@ class Scryer:
                         ).text
                     region = soup.find(
                         'div', class_='col').get_text(strip=True)[7:]
+                    location = soup.find(
+                        'h3', class_='lead py-3').get_text()
+                    if soup.find(
+                            'span',
+                            class_='badge rounded-pill text-bg-primary'):
+                        remote_first = 'Yes'
+                    else:
+                        remote_first = 'No'
+                    title = soup.find(
+                        'h1', class_='display-5 mt-4 text-break').get_text()
+                    company = soup.find(
+                        'h2', class_='h5').get_text()
                     block.append(
                         {
                             'created_date': date,
                             'description': desc,
                             'salary': salary,
                             'exp_level': exp_level,
-                            'region': region
+                            'region': region,
+                            'title': title,
+                            'location': location,
+                            'remote_first': remote_first,
+                            'company': company
                         }
                                 )
                 except AttributeError:

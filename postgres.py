@@ -14,7 +14,11 @@ column_list = [
                'description',
                'salary',
                'exp_level',
-               'region'
+               'region',
+               'title',
+               'location',
+               'remote_first',
+               'company'
                ]
 
 
@@ -44,43 +48,19 @@ class PGPush:
             f"""
                 INSERT INTO
                     {table}
-                select
-                    created_date,
-                    regexp_replace(description,
-                                   '[^a-zA-Z\d\s.-]', '', 'g') as description,
-                    salary,
-                    exp_level,
-                    region
-                from (
-                        select
-                            *,
-                            ROW_NUMBER() OVER (PARTITION BY
-                                               created_date,
-                                               description,
-                                               salary,
-                                               exp_level,
-                                               region
-                                               ) as ct
-                        from
-                            temp_table
-                        left join
-                            {table}
-                        using
-                        (
-                            created_date,
-                            description,
-                            salary,
-                            exp_level,
-                            region
-                        )
-                    )
-                where
-                    ct = 1
-                and
-                description != ""{{}}"" --No need for empty descriptions
+                select 
+                    t1.created_date, 
+                    t1.description, 
+                    t1.salary, 
+                    t1.exp_level, 
+                    t1.region, 
+                    t1.title, 
+                    t1.location, 
+                    t1.remote_first, 
+                    t1.company from temp_table t1
+            left join {table} t2 using (created_date, description)
+            where t2.created_date is null
             """
                 )
 
         engine.execute(qry)
-#        del_temp = """DROP TABLE temp_table"""
-#        engine.execute(del_temp)

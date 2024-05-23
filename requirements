@@ -1,0 +1,9 @@
+bs4
+lxml
+mime
+pandas
+psycopg2-binary 
+requests
+selenium
+sqlalchemy==1.4.39
+tqdm
