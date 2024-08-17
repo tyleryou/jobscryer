@@ -9,9 +9,11 @@ recipient_email = os.environ.get('email_recipient')
 email_ip = os.environ.get('email_ip')
 
 
-def send_alert(alert, db):
+def send_alert(alert, db, table, exception):
     subject = f'Pipeline Alert: {alert}'
-    message = f'Pipeline {alert} on database: {db}'
+    message = (f'Pipeline {alert} on database: {db} ' +
+               f'for table: {table} ' +
+               f'with exception: {exception}')
 
     try:
         smtp_server = smtplib.SMTP(email_ip)

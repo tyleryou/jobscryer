@@ -23,7 +23,7 @@ column_list = [
 
 
 class PGPush:
-    def pg_push(self, dbname, column_list, data):
+    def pg_push(self, dbname, table, column_list, data):
         df = pd.DataFrame(data)
         df = df[df['description'] != '{}']
         try:
@@ -48,6 +48,8 @@ class PGPush:
             f"""
                 INSERT INTO
                     {table}
+                (created_date, description, salary, exp_level, region,
+                title, location, remote_first, company)
                 select 
                     t1.created_date, 
                     t1.description, 
@@ -64,3 +66,5 @@ class PGPush:
                 )
 
         engine.execute(qry)
+#        del_temp = """DROP TABLE temp_table"""
+#        engine.execute(del_temp)
