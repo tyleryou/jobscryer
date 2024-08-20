@@ -43,24 +43,29 @@ class PGPush:
 # values like {}, ", etc.
 
         df.to_sql(
-            'temp_table', con=engine, index=False, if_exists='replace')
+            'core.temp_table',
+            con=engine,
+            index=False,
+            if_exists='replace',
+            schema='core'
+            )
         qry = (
             f"""
                 INSERT INTO
-                    {table}
+                    core.{table}
                 (created_date, description, salary, exp_level, region,
                 title, location, remote_first, company)
-                select 
-                    t1.created_date, 
-                    t1.description, 
-                    t1.salary, 
-                    t1.exp_level, 
-                    t1.region, 
-                    t1.title, 
-                    t1.location, 
-                    t1.remote_first, 
-                    t1.company from temp_table t1
-            left join {table} t2 using (created_date, description)
+                select
+                    t1.created_date,
+                    t1.description,
+                    t1.salary,
+                    t1.exp_level,
+                    t1.region,
+                    t1.title,
+                    t1.location,
+                    t1.remote_first,
+                    t1.company from core.temp_table t1
+            left join core.{table} t2 using (created_date, description)
             where t2.created_date is null
             """
                 )

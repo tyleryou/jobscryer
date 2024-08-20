@@ -27,13 +27,13 @@ class Schedule:
         try:
             sender.pg_push(
                 dbname=dbname,
-                table=os.environ.get('ai_jobs_table'),
+                table=os.environ.get('jobscryer_table'),
                 column_list=column_list,
                 data=data)
             email_alert.send_alert(
                 alert='Success',
                 db=dbname,
-                table=os.environ.get('ai_jobs_table'),
+                table=os.environ.get('jobscryer_table'),
                 exception='')
             print('Pipeline sucess')
         except Exception as e:
@@ -41,7 +41,7 @@ class Schedule:
             email_alert.send_alert(
                 alert='Fail',
                 db=dbname,
-                table=os.environ.get('ai_jobs_table'),
+                table=os.environ.get('jobscryer_table'),
                 exception=e
                 )
 
@@ -50,17 +50,23 @@ class Schedule:
 # Searching for multiple job title keywords in United States.
 # Job title keywords: "data engineer", "data analyst", "ai", etc
         schedule.update_ai_jobs_table(
-            url='https://ai-jobs.net/?cou=238&key=data+engineer&exp=&sal=')
+            url='https://aijobs.net/?cou=238&reg=7'
+                '&key=data+engineer&exp=&sal=')
         schedule.update_ai_jobs_table(
-            url='https://ai-jobs.net/?cou=238&key=data+analyst&exp=&sal=')
+            url='https://aijobs.net/?cou=238&reg=7'
+                'key=data+analyst&exp=&sal=')
         schedule.update_ai_jobs_table(
-            url='https://ai-jobs.net/?cou=238&key=ai&exp=&sal=')
-        schedule.update_ai_jobs_table(url='https://ai-jobs.net/' +
-                                      '?cou=238&key' +
-                                      '=analytics+engineer&exp=&sal=')
-        schedule.update_ai_jobs_table(url='https://ai-jobs.net/' +
-                                      '?cou=238&key' +
-                                      '=machine+learning+engineer&exp=&sal=')
+            url='https://aijobs.net/?cou=238&reg=7'
+                '&key=business+intelligence&exp=&sal=')
+        schedule.update_ai_jobs_table(
+            url='https://aijobs.net/?cou=238&reg=7'
+                '&key=analytics+engineer&exp=&sal=')
+        schedule.update_ai_jobs_table(
+            url='https://aijobs.net/?cou=238&reg=7'
+                '&key=software+engineer&exp=&sal=')
+        schedule.update_ai_jobs_table(
+            url='https://aijobs.net/?cou=238&reg=7'
+                '&key=machine+learning&exp=&sal=')
 
 
 Schedule().daily_update()
