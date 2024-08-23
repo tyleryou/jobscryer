@@ -68,7 +68,9 @@ class Scraper:
                     # NoSuchElementException,
                     # ElementNotInteractableException):
                         # return driver.page_source
-            return driver.page_source
+        text = driver.page_source
+        driver.quit()
+        return text
 
 
 class AIScryer(Scraper):
