@@ -2,8 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 import pandas as pd
 import os
-
-table = os.environ.get('pg_table')
+table = os.environ.get('remotive_table')
 dbname = os.environ.get('pg_database')
 user = os.environ.get('pg_user')
 password = os.environ.get('pg_pw')
@@ -25,7 +24,11 @@ column_list = [
 class PGPush:
     def pg_push(self, dbname, table, column_list, data):
         df = pd.DataFrame(data)
-        df = df[df['description'] != '{}']
+        # df = df[df['description'] != '{}']
+        df['description'] = df['description'].apply(
+            lambda desc: '. '.join(desc) if isinstance(desc, list) else desc)
+        df['description'] = df['description'].str.replace(
+            '\xa0', ' ').str.replace('\n', ' ')
         try:
             engine = create_engine(
                 f'postgresql://{user}:{password}@{host}:{port}/{dbname}')
@@ -43,7 +46,7 @@ class PGPush:
 # values like {}, ", etc.
 
         df.to_sql(
-            'core.temp_table',
+            'temp_table',
             con=engine,
             index=False,
             if_exists='replace',
@@ -64,12 +67,13 @@ class PGPush:
                     t1.title,
                     t1.location,
                     t1.remote_first,
-                    t1.company from core.temp_table t1
+                    t1.company
+                from core.temp_table t1
             left join core.{table} t2 using (created_date, description)
             where t2.created_date is null
             """
                 )
 
         engine.execute(qry)
-#        del_temp = """DROP TABLE temp_table"""
-#        engine.execute(del_temp)
+        #del_temp = """DROP TABLE core.temp_table"""
+        #engine.execute(del_temp)

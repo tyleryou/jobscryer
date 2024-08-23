@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import ElementClickInterceptedException
 from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import ElementNotInteractableException
 from bs4 import BeautifulSoup
 import requests
 import re
@@ -12,68 +13,69 @@ from datetime import datetime
 
 class Scraper:
 
-    def scrape(self, url, listing_regex=''):
-        r = requests.get(url)
-        soup = BeautifulSoup(r.text, 'html.parser')
+    def scrape(self, text, listing_regex=''):
+        soup = BeautifulSoup(text, 'html.parser')
         jobs = soup.find_all('a', href=re.compile(rf'{listing_regex}'))
+        # Some sites have multiple of the same URL listed for individual jobs.
+        # This just checks to see if the script has grabbed the URL already.
         job_links = []
-        for link in jobs:
-            job_links.append(link['href'])
+        for job in jobs:
+            if job['href'] not in job_links:
+                job_links.append(job['href'])
         return job_links
 
-    def clicker(self, url, button_path='', listing_regex=''):
+    def button_press(self, url, popup_path='', button_path='', sort_path=''):
         driver = webdriver.Chrome()
         driver.get(url)
-        while True:
+        button = driver.find_element(By.XPATH,
+                                     rf'{button_path}')
+        if popup_path:
+            try:
+                # button = driver.find_element(By.XPATH,
+                #                             rf'{button_path}')
+                button.click()
+            except ElementClickInterceptedException:
+                time.sleep(2)
+                button_popup = driver.find_element(By.XPATH,
+                                                   rf'{popup_path}')
+                button_popup.click()
+        if sort_path:
+            button_sort = driver.find_element(By.XPATH,
+                                              rf'{sort_path}')
+            button_sort.click()
+        # Click the "Load More" button three times, this is overkill as
+        # there aren't that many jobs posted every day. The script runs daily,
+        # so all fresh jobs are guaranteed. 4 iterations because the first
+        # always fails. Absolutely no clue why. Possibly bug in Selenium?
+        itr = 0
+        while itr < 4:
             time.sleep(1)
             try:
-                button = driver.find_element(By.XPATH,
-                                             f'{button_path}')
+                # button = driver.find_element(By.XPATH,
+                #                             rf'{button_path}')
                 button.click()
+                itr += 1
 
-# button.click() will throw an exception every time, this is a bug
-# in selenium's code. Simply continue when click fails.
-# NoSuchElementException will throw when all data is loaded in the page.
-
-# The button clicker will click the button until there are no more elements
-# to load.
+    # button.click() will throw an exception every time. I have no idea why.
+    # Trying to click it again will always work.
+    # NoSuchElementException will throw when all data is loaded in the page.
+    # Currently commented out, leaving in for data dumps.
 
             except ElementClickInterceptedException:
                 continue
 
-            except NoSuchElementException:
-                print('Done')
-                soup = BeautifulSoup(driver.page_source, 'html.parser')
-                jobs = soup.find_all('a', href=re.compile(rf'{listing_regex}'))
-                job_links = []
-                for link in jobs:
-                    job_links.append(link['href'])
-                return job_links
-
-    def sly_scrape(self, url, listing_regex):
-        # Indeed throws a 403 when scraping with requests --
-        # using selenium bypasses that by using an actual browser
-
-        driver = webdriver.Chrome()
-        links = []
-        # i = 0
-        driver.get(url)
-        soup = BeautifulSoup(driver.page_source, 'html.parser')
-        jobs = soup.find_all('a', id=re.compile(rf'{listing_regex}'))
-        # while loop possibly here
-        for job in jobs:
-            link = job['href']
-            links.append(link)
-            # i = i+10
-            # url = re.sub(r'start=\d+', f'start={i}')
-        return links
+            # except (
+                    # NoSuchElementException,
+                    # ElementNotInteractableException):
+                        # return driver.page_source
+            return driver.page_source
 
 
 class AIScryer(Scraper):
     # webscrapes ai-jobs.net
 
     url = 'https://ai-jobs.net'
-    listing_regex = '/job/\d+'
+    listing_regex = r'/job/\d+'
 
     def extract(self, url, path_list):
         itr = len(path_list)
@@ -126,3 +128,60 @@ class AIScryer(Scraper):
                 except AttributeError:
                     continue
         return block
+
+
+class RemotiveScryer(Scraper):
+    # As much as I don't like repeating code, there's so much nuance in the
+    # html to extract from each site that as of right now, I don't know how to
+    # make this into one solid method.
+    def extract(self, path_list, url=''):
+        itr = len(path_list)
+        with tqdm(total=itr, desc='Processing', unit='iterations') as pbar:
+            block = []
+            for path in path_list:
+                pbar.update(1)
+                try:
+                    r = requests.get(url+path)
+                    soup = BeautifulSoup(r.text, 'lxml')
+                    description = (soup.find(
+                        'div', class_='tw-mt-8'
+                        )).text
+                    date = datetime.today().date().strftime('%Y-%m-%d')
+                    salary = soup.find(
+                        'span',
+                        class_='job-tile-salary tag-small ' +
+                        'remotive-tag-light tw-flex'
+                        ).text.strip()
+                    exp_level = 'NULL'
+                    region = soup.find(
+                        'span',
+                        class_='job-tile-location tag-small ' +
+                        'remotive-tag-light tw-flex').text.strip()
+                    location = soup.find_all(
+                        'span',
+                        class_='tw-uppercase ' +
+                        'remotive-text-light')[1].text.strip()
+                    title = soup.find(
+                        'span', class_='h1 remotive-text-bigger').text
+                    remote_first = 'NULL'
+                    company = soup.find(
+                        'span', class_='tw-underline').text
+                    block.append(
+                        {
+                            'created_date': date,
+                            'description': description,
+                            'salary': salary,
+                            'exp_level': exp_level,
+                            'region': region,
+                            'title': title,
+                            'location': location,
+                            'remote_first': remote_first,
+                            'company': company
+                        }
+                                )
+                except AttributeError:
+                    continue
+        return block
+    
+    
+
